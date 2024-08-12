@@ -2,11 +2,11 @@ import requests
 from re import findall
 
 
-class RealtorParser:
+class RealtorsIdParser:
     """Класс для парсинга id риелторов с сайта циан"""
 
     @staticmethod
-    def get_realtors(amount: int, regionId: int = 1):
+    def get_realtors_id(amount: int, regionId: int = 1):
         realtors_found = 0
         page_idx = 1
         while realtors_found < amount:
