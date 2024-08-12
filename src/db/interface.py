@@ -1,6 +1,8 @@
 from .models import RealtorId
 
+
 class SQLInterface:
+
     @staticmethod
     def write_realtors_id(session, realtors_ids: list):
         for realtor_id in realtors_ids:
@@ -9,5 +11,6 @@ class SQLInterface:
 
         session.commit()
 
+    @staticmethod
     def write_realtors_data(session):
         pass

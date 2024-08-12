@@ -13,4 +13,4 @@ class QueryHandler:
     def process_realtors_id():
         realtors_id_parser = RealtorsIdParser()
         realtors_ids = list(realtors_id_parser.get_realtors_id(100))
-        SQLInterface.write_realtors_data(session, realtors_ids)
+        SQLInterface.write_realtors_id(session, realtors_ids)

@@ -4,7 +4,7 @@ from src.query_handler import QueryHandler
 
 async def main():
     query_handler = QueryHandler()
-    await query_handler.process_realtors_id()
+    query_handler.process_realtors_id()
 
 
 if __name__ == "__main__":
