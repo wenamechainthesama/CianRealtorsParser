@@ -1,4 +1,4 @@
-from .db.interface import SQLInterface
+from .db.sql_interface import SQLInterface
 from .parser.realtors_id_parser import RealtorsIdParser
 from .db import session
 
