@@ -5,7 +5,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from fake_useragent import UserAgent
-from utils.secret import ADSPOWER_ID, ADSPOWER_NAME
+from config import ADSPOWER_ID, ADSPOWER_NAME
 
 
 class AdspowerDriver:
