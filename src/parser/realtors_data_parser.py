@@ -16,9 +16,9 @@ from src.utils.adspower_driver import AdspowerDriver
 class RealtorsDataParser:
     """Класс для парсинга основных данных (имени, города, телефона, почты) риелторов с сайта циан"""
 
-    def __init__(self, realtor_ids: list[int],
-                 proxies: list[str],
-                 rotation_interval: int):
+    def __init__(
+        self, realtor_ids: list[int], proxies: list[str], rotation_interval: int
+    ):
 
         self.realtor_ids = realtor_ids
         self.proxies = proxies
@@ -29,7 +29,6 @@ class RealtorsDataParser:
         self.current_proxy = self.get_random_proxy()
 
     def get_realtors_data(self):
-
         adspower_driver = self.adspower_driver.get_browser()
 
         for id in self.realtor_ids:
@@ -40,16 +39,24 @@ class RealtorsDataParser:
             realtor_link = self.base_endpoint + str(id)
             adspower_driver.get(realtor_link)
 
-            name = adspower_driver.find_element(By.XPATH,
-                                       '//*[@id="realtor-reviews-frontend"]/div/div[2]/main/section[1]/div[1]/div[2]/div/span/span/span[1]')
+            name = adspower_driver.find_element(
+                By.XPATH,
+                '//*[@id="realtor-reviews-frontend"]/div/div[2]/main/section[1]/div[1]/div[2]/div/span/span/span[1]',
+            )
             print(name.text)
-            region = adspower_driver.find_element(By.XPATH,
-                                         '//*[@id="realtor-reviews-frontend"]/div/div[2]/main/section[1]/div[3]/div[3]/span/span')
+            region = adspower_driver.find_element(
+                By.XPATH,
+                '//*[@id="realtor-reviews-frontend"]/div/div[2]/main/section[1]/div[3]/div[3]/span/span',
+            )
             print(region.text)
-            show_phone_btn = adspower_driver.find_element(By.XPATH, '//*[@id="realtor-contacts"]/div/div[1]/div/span[2]')
+            show_phone_btn = adspower_driver.find_element(
+                By.XPATH, '//*[@id="realtor-contacts"]/div/div[1]/div/span[2]'
+            )
             show_phone_btn.click()
             time.sleep(3)
-            phone_number = adspower_driver.find_element(By.XPATH, '//*[@id="realtor-contacts"]/div/div[1]/div/a/span')
+            phone_number = adspower_driver.find_element(
+                By.XPATH, '//*[@id="realtor-contacts"]/div/div[1]/div/a/span'
+            )
             print(phone_number.text)
 
             self.request_count += 1
@@ -72,18 +79,12 @@ class RealtorsDataParser:
                     host=self.current_proxy["PROXY_HOST"],
                     port=self.current_proxy["PROXY_PORT"],
                     user=self.current_proxy["PROXY_LOGIN"],
-                    password=self.current_proxy["PROXY_PSW"]
+                    password=self.current_proxy["PROXY_PSW"],
                 )
 
 
-
-
-
-
-
-
 def test_get_cian_realtor():
-    ads_id = "jg1ypsy" # "kmg4vf7"
+    ads_id = "kmg4vf7"  # "jg1ypsy"
     open_url = "http://local.adspower.com:50325/api/v1/browser/start?user_id=" + ads_id
     close_url = "http://local.adspower.com:50325/api/v1/browser/stop?user_id=" + ads_id
 
@@ -98,10 +99,14 @@ def test_get_cian_realtor():
     service = Service(executable_path=chrome_driver)
     chrome_options = Options()
 
-    chrome_options.add_experimental_option("debuggerAddress", resp["data"]["ws"]["selenium"])
+    chrome_options.add_experimental_option(
+        "debuggerAddress", resp["data"]["ws"]["selenium"]
+    )
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
-    driver.get("https://www.cian.ru/realtors/?dealType=rent&offerType%5B0%5D=flat&regionId=1&page=1")
+    driver.get(
+        "https://www.cian.ru/realtors/?dealType=rent&offerType%5B0%5D=flat&regionId=1&page=1"
+    )
     time.sleep(3)
 
     realtors_ids = [12284, 17657, 18867, 21934, 23097]
@@ -109,14 +114,24 @@ def test_get_cian_realtor():
 
     for id in realtors_ids:
         driver.get(realtors_link + str(id))
-        name = driver.find_element(By.XPATH, '//*[@id="realtor-reviews-frontend"]/div/div[2]/main/section[1]/div[1]/div[2]/div/span/span/span[1]')
+        name = driver.find_element(
+            By.XPATH,
+            '//*[@id="realtor-reviews-frontend"]/div/div[2]/main/section[1]/div[1]/div[2]/div/span/span/span[1]',
+        )
         print(name.text)
-        region = driver.find_element(By.XPATH, '//*[@id="realtor-reviews-frontend"]/div/div[2]/main/section[1]/div[3]/div[3]/span/span')
+        region = driver.find_element(
+            By.XPATH,
+            '//*[@id="realtor-reviews-frontend"]/div/div[2]/main/section[1]/div[3]/div[3]/span/span',
+        )
         print(region.text)
-        show_phone_btn = driver.find_element(By.XPATH, '//*[@id="realtor-contacts"]/div/div[1]/div/span[2]')
+        show_phone_btn = driver.find_element(
+            By.XPATH, '//*[@id="realtor-contacts"]/div/div[1]/div/span[2]'
+        )
         show_phone_btn.click()
         time.sleep(3)
-        phone_number = driver.find_element(By.XPATH, '//*[@id="realtor-contacts"]/div/div[1]/div/a/span')
+        phone_number = driver.find_element(
+            By.XPATH, '//*[@id="realtor-contacts"]/div/div[1]/div/a/span'
+        )
         print(phone_number.text)
         # email = driver.find_element(By.XPATH, '//*[@id="realtor-contacts"]/div/div[2]/div/a/span')
         # print(email.text)
