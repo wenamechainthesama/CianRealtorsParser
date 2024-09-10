@@ -1,4 +1,6 @@
-from .models import RealtorId
+from loguru import logger
+
+from .models import RealtorId, RealtorData
 from sqlalchemy.orm import Session
 
 
@@ -18,5 +20,14 @@ class SQLInterface:
         return result
 
     @staticmethod
-    def write_realtors_data(session: Session):
-        pass
+    def write_realtors_data(session: Session, realtors_data: list[dict[str, str]]):
+        for data in realtors_data:
+            new_data = RealtorData(
+                name=data["name"],
+                email=data["email"],
+                phone_number=data["phone_number"],
+                realtor_id=int(data["id"]),
+            )
+            session.add(new_data)
+
+        session.commit()

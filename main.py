@@ -18,7 +18,6 @@ def fetch_realtor_data():
 def main():
     fetch_ids()
     fetch_realtor_data()
-    pass
 
 
 if __name__ == "__main__":

@@ -35,32 +35,9 @@ class AdspowerDriver:
         chrome_options.add_experimental_option(
             "debuggerAddress", resp["data"]["ws"]["selenium"]
         )
+
         driver = webdriver.Chrome(service=service, options=chrome_options)
         return driver
-        # ads_id = "kmg4vf7"  # "jg1ypsy"
-        # open_url = (
-        #     "http://local.adspower.com:50325/api/v1/browser/start?user_id=" + ads_id
-        # )
-        # close_url = (
-        #     "http://local.adspower.com:50325/api/v1/browser/stop?user_id=" + ads_id
-        # )
-
-        # resp = requests.get(open_url).json()
-
-        # if resp["code"] != 0:
-        #     print(resp["msg"])
-        #     print("please check ads_id")
-        #     sys.exit()
-
-        # chrome_driver = resp["data"]["webdriver"]
-        # service = Service(executable_path=chrome_driver)
-        # chrome_options = Options()
-
-        # chrome_options.add_experimental_option(
-        #     "debuggerAddress", resp["data"]["ws"]["selenium"]
-        # )
-        # driver = webdriver.Chrome(service=service, options=chrome_options)
-        # return driver
 
     @classmethod
     def delete_cache_adspower(cls):

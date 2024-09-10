@@ -1,6 +1,7 @@
 from re import findall
 import random
 import traceback
+import time
 from typing import Iterator
 
 import requests
@@ -40,7 +41,7 @@ class RealtorsIdParser:
         ]
         self.current_region_idx = 0
 
-    def get_realtors_ids(self, batch_size: int) -> Iterator[int] | None:
+    def parse_realtors_ids(self, batch_size: int) -> Iterator[int] | None:
         # TODO: добавить обработчик ошибок на requests
         # TODO: добавить логирование
         # TODO: как нам обрабатывать ids, которые уже собрали, чтобы в случае ошибки не начинать парсинг заново?
@@ -56,8 +57,6 @@ class RealtorsIdParser:
                         if self.current_proxy
                         else None
                     ),
-                    # headers=headers,
-                    # timeout=10
                 )
                 if request.status_code in range(200, 400):
                     new_realtors = list(
@@ -77,19 +76,20 @@ class RealtorsIdParser:
 
                         if self.current_region_idx >= len(self.regions_ids) - 1:
                             # Риелторы кончились
-                            return
+                            return False
                     else:
                         realtors_found_local += len(new_realtors)
                         self.realtors_found_global += len(new_realtors)
                         self.current_page_idx += 1
                 else:
-                    # TODO: добавить ротацию прокси, добавить слип долгий
-                    print(request.status_code)
-                    pass
+                    logger.error(
+                        f"Не загружается страница циана. Код статуса: {request.status_code}"
+                    )
+                    self.rotate_proxy()
 
             except Exception:
                 logger.error(f"Ошибка при сборе ids - {traceback.format_exc()}")
-                return
+                self.rotate_proxy()
 
     def get_random_proxy(self) -> dict[str, str]:
         """Возвращает случайный прокси из списка"""
@@ -110,4 +110,7 @@ class RealtorsIdParser:
             }   
             """
             # TODO: получаем словарь с данными прокси и его нужно преобразовать в строку, чтобы отдать в requests
-            logger.info(f"Proxy rotated: {self.current_proxy}")
+            logger.info(
+                f"Изменено прокси при парсинге ids риелторов. Новое прокси: {self.current_proxy}"
+            )
+            # time.sleep(5)
