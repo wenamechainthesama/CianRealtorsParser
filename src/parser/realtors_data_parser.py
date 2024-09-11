@@ -19,30 +19,31 @@ class RealtorsDataParser:
     """Класс для парсинга основных данных (имени, города, телефона, почты) риелторов с сайта циан"""
 
     def __init__(
-        self, realtor_ids: list[int], proxies: list[str], rotation_interval: int
+        self, realtor_ids: list[int], proxies: list[str], batch_size: int = 10
     ):
 
         self.realtor_ids = realtor_ids
         self.proxies = proxies
         self.request_count = 0
-        self.rotation_interval = rotation_interval
+        self.batch_size = batch_size
         self.adspower_driver: AdspowerDriver = AdspowerDriver()
         self.base_endpoint = "https://www.cian.ru/agents/"
         self.current_proxy = self.get_random_proxy()
+        self.current_id_idx = 0
+        self.delay = None
 
     def get_realtors_data(self):
-        adspower_driver = self.adspower_driver.get_browser()
-        for id in self.realtor_ids:
-            # TODO: добавить логирование
-            self.rotate_proxy()
-
+        adspower_browser = self.adspower_driver.get_browser()
+        for id in self.realtor_ids[
+            self.current_id_idx : self.current_id_idx + self.batch_size
+        ]:
             realtor_link = self.base_endpoint + str(id)
-            adspower_driver.get(realtor_link)
+            adspower_browser.get(realtor_link)
 
             # Парсинг данных
             # Имя
             name = (
-                WebDriverWait(adspower_driver, 5)
+                WebDriverWait(adspower_browser, 5)
                 .until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//*[@data-name='RealtorName']")
@@ -52,7 +53,7 @@ class RealtorsDataParser:
             )
 
             # Регион работы
-            description_rows = WebDriverWait(adspower_driver, 5).until(
+            description_rows = WebDriverWait(adspower_browser, 5).until(
                 EC.presence_of_all_elements_located(
                     (By.XPATH, "//*[@data-name='DescriptionRow']")
                 )
@@ -67,7 +68,7 @@ class RealtorsDataParser:
                     ).text
 
             # Номер телефона и почта
-            realtor_contacts = WebDriverWait(adspower_driver, 5).until(
+            realtor_contacts = WebDriverWait(adspower_browser, 5).until(
                 EC.presence_of_element_located(
                     (By.XPATH, "//*[@data-name='RealtorContacts']")
                 )
@@ -96,7 +97,11 @@ class RealtorsDataParser:
                 "email": email,
             }
 
-        return False
+            self.adspower_driver.delete_cache_adspower()
+            self.current_id_idx += 1
+            time.sleep(self.delay if self.delay else random.randint(3, 7))
+
+        self.rotate_proxy()
 
     def get_random_proxy(self) -> dict[str, str]:
         """Возвращает случайный прокси из списка"""
@@ -104,24 +109,21 @@ class RealtorsDataParser:
 
     def rotate_proxy(self):
         """Меняет прокси после каждых n запросов"""
-        if self.request_count % self.rotation_interval == 0:
-            self.current_proxy = self.get_random_proxy()
+        self.current_proxy = self.get_random_proxy()
 
-            if self.current_proxy:
-                # TODO: посмотреть в документации adspower тип прокси, но там - http или socks5
-                proxy_type = ...
+        if self.current_proxy:
+            proxy_type = "HTTP"
 
-                self.adspower_driver.change_proxy(
-                    proxy_type=proxy_type,
-                    host=self.current_proxy["PROXY_HOST"],
-                    port=self.current_proxy["PROXY_PORT"],
-                    user=self.current_proxy["PROXY_LOGIN"],
-                    password=self.current_proxy["PROXY_PSW"],
-                )
-                logger.info(
-                    f"Изменено прокси при парсинге данных риелторов. Новое прокси: {self.current_proxy}"
-                )
-                # time.sleep(5)
+            self.adspower_driver.change_proxy(
+                proxy_type=proxy_type,
+                host=self.current_proxy["PROXY_HOST"],
+                port=self.current_proxy["PROXY_PORT"],
+                user=self.current_proxy["PROXY_LOGIN"],
+                password=self.current_proxy["PROXY_PSW"],
+            )
+            logger.info(
+                f"Изменено прокси при парсинге данных риелторов. Новое прокси: {self.current_proxy}"
+            )
 
 
 # headers = {

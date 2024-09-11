@@ -4,6 +4,7 @@ from .db.sql_interface import SQLInterface
 from .parser.realtors_id_parser import RealtorsIdParser
 from .parser.realtors_data_parser import RealtorsDataParser
 from .db import session
+from config import proxy_list
 
 
 class QueryHandler:
@@ -12,7 +13,7 @@ class QueryHandler:
     и передавания данных в бд
     """
 
-    proxies = None  # список прокси
+    proxies = None  # proxy_list
     rotation_interval = 10
     batch_size = 10
 
@@ -21,7 +22,7 @@ class QueryHandler:
         # Создание объекта класса по парсингу ids риелторов
         realtors_id_parser = RealtorsIdParser(
             proxies=QueryHandler.proxies,
-            rotation_interval=QueryHandler.rotation_interval,
+            batch_size=QueryHandler.batch_size,
         )
 
         # Получение и запись в базу данных ids риелторов частями
@@ -29,11 +30,7 @@ class QueryHandler:
         # while realtors_ids:
         for _ in range(3):
             # Получение
-            realtors_ids = list(
-                realtors_id_parser.parse_realtors_ids(
-                    batch_size=QueryHandler.batch_size
-                )
-            )
+            realtors_ids = list(realtors_id_parser.parse_realtors_ids())
             logger.success(f"Получены новые {QueryHandler.batch_size} ids")
 
             # Запись в бд
@@ -50,7 +47,7 @@ class QueryHandler:
         realtors_data_parser = RealtorsDataParser(
             realtor_ids=realtors_ids,
             proxies=QueryHandler.proxies,
-            rotation_interval=QueryHandler.rotation_interval,
+            batch_size=QueryHandler.batch_size,
         )
 
         realtors_data_batch = True

@@ -12,14 +12,13 @@ from loguru import logger
 class RealtorsIdParser:
     """Класс для парсинга id риелторов с сайта циан"""
 
-    def __init__(
-        self, proxies: list[dict[str, str]] | None, rotation_interval: int = 10
-    ):
+    def __init__(self, proxies: list[dict[str, str]] | None, batch_size: int = 10):
         self.ua = UserAgent()
         self.proxies = proxies
-        self.current_proxy = self.get_random_proxy()
+        self.current_proxy = None
+        self.current_proxies_str: list[str] = None
 
-        self.rotation_interval = rotation_interval
+        self.batch_size = batch_size
         self.request_count = 0
         self.forbidden_regions_idxs = [181462, 184723]
         self.regions_ids = None
@@ -28,7 +27,11 @@ class RealtorsIdParser:
         self.current_page_idx = 1
         self.current_region_idx = None
 
+        self.delay = None
+
         self.get_regions_ids()
+        if self.proxies:
+            self.translate_proxies_into_strings()
 
     def get_regions_ids(self):
         request = requests.get(
@@ -41,21 +44,25 @@ class RealtorsIdParser:
         ]
         self.current_region_idx = 0
 
-    def parse_realtors_ids(self, batch_size: int) -> Iterator[int] | None:
+    def translate_proxies_into_strings(self):
+        for proxy in self.proxies:
+            current_proxy = f"{proxy["PORT"].lower()}://{proxy["USERNAME"]}:{proxy["PASSWORD"]}@{proxy["HOST"]}"
+            print(current_proxy)
+            self.current_proxies_str.append(current_proxy)
+
+    def parse_realtors_ids(self) -> Iterator[int] | None:
         # TODO: добавить обработчик ошибок на requests
         # TODO: добавить логирование
         # TODO: как нам обрабатывать ids, которые уже собрали, чтобы в случае ошибки не начинать парсинг заново?
         # TODO: разобраться с прокси, добавить ротацию прокси, добавить слип долгий
         realtors_found_local = 0
-        while realtors_found_local < batch_size:
+        while realtors_found_local < self.batch_size:
             try:
                 # TODO: добавить headers
                 request = requests.get(
                     f"https://api.cian.ru/agent-catalog-search/v1/get-realtors/?dealType=rent&offerType%5B0%5D=flat&regionId={self.regions_ids[self.current_region_idx]}&page={self.current_page_idx}",
                     proxies=(
-                        {"http": self.current_proxy, "https": self.current_proxy}
-                        if self.current_proxy
-                        else None
+                        {"http": self.get_random_proxy(), "https": self.get_random_proxy()}
                     ),
                 )
                 if request.status_code in range(200, 400):
@@ -81,36 +88,15 @@ class RealtorsIdParser:
                         realtors_found_local += len(new_realtors)
                         self.realtors_found_global += len(new_realtors)
                         self.current_page_idx += 1
+                        time.sleep(self.delay if self.delay else random.randint(2, 4))
                 else:
                     logger.error(
                         f"Не загружается страница циана. Код статуса: {request.status_code}"
                     )
-                    self.rotate_proxy()
 
             except Exception:
                 logger.error(f"Ошибка при сборе ids - {traceback.format_exc()}")
-                self.rotate_proxy()
 
     def get_random_proxy(self) -> dict[str, str]:
         """Возвращает случайный прокси из списка"""
-        return random.choice(self.proxies) if self.proxies else None
-
-    def rotate_proxy(self):
-        """Меняет прокси после каждых n запросов"""
-        if self.realtors_found_global % self.rotation_interval == 0:
-            self.current_proxy = self.get_random_proxy()
-            """
-            self.current_proxy
-            {
-                "PROXY_HOST": ...,
-                "PROXY_PORT": ...,
-                "PROXY_PSW": ...,
-                "PROXY_LOGIN": ...,
-                
-            }   
-            """
-            # TODO: получаем словарь с данными прокси и его нужно преобразовать в строку, чтобы отдать в requests
-            logger.info(
-                f"Изменено прокси при парсинге ids риелторов. Новое прокси: {self.current_proxy}"
-            )
-            # time.sleep(5)
+        return random.choice(self.current_proxies_str) if self.proxies else None
