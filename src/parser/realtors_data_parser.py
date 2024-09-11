@@ -1,6 +1,7 @@
 import sys
 import time
 import random
+import traceback
 
 import requests
 from loguru import logger
@@ -10,6 +11,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver import ActionChains
 
 
 from src.utils.adspower_driver import AdspowerDriver
@@ -18,11 +20,8 @@ from src.utils.adspower_driver import AdspowerDriver
 class RealtorsDataParser:
     """Класс для парсинга основных данных (имени, города, телефона, почты) риелторов с сайта циан"""
 
-    def __init__(
-        self, realtor_ids: list[int], proxies: list[str], batch_size: int = 10
-    ):
+    def __init__(self, proxies: list[str], batch_size: int = 10):
 
-        self.realtor_ids = realtor_ids
         self.proxies = proxies
         self.request_count = 0
         self.batch_size = batch_size
@@ -32,74 +31,89 @@ class RealtorsDataParser:
         self.current_id_idx = 0
         self.delay = None
 
-    def get_realtors_data(self):
+    def get_realtors_data(self, realtors_ids_batch: list[int]):
         adspower_browser = self.adspower_driver.get_browser()
-        for id in self.realtor_ids[
+        for id in realtors_ids_batch[
             self.current_id_idx : self.current_id_idx + self.batch_size
         ]:
-            realtor_link = self.base_endpoint + str(id)
-            adspower_browser.get(realtor_link)
+            try:
+                realtor_link = self.base_endpoint + str(id)
+                adspower_browser.get(realtor_link)
 
-            # Парсинг данных
-            # Имя
-            name = (
-                WebDriverWait(adspower_browser, 5)
-                .until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//*[@data-name='RealtorName']")
+                # Парсинг данных
+                # Имя
+                name = (
+                    WebDriverWait(adspower_browser, 5)
+                    .until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//*[@data-name='RealtorName']")
+                        )
+                    )
+                    .text
+                )
+
+                # Регион работы
+                description_rows = WebDriverWait(adspower_browser, 5).until(
+                    EC.presence_of_all_elements_located(
+                        (By.XPATH, "//*[@data-name='DescriptionRow']")
                     )
                 )
-                .text
-            )
+                for row in description_rows:
+                    title = row.find_element(
+                        By.CLASS_NAME, "_3ea6fa5da8--about-title--OCzbj"
+                    )
+                    if title.text == "Регион работы":
+                        region = row.find_element(
+                            By.CLASS_NAME, "_3ea6fa5da8--about-text--xx5UG"
+                        ).text
 
-            # Регион работы
-            description_rows = WebDriverWait(adspower_browser, 5).until(
-                EC.presence_of_all_elements_located(
-                    (By.XPATH, "//*[@data-name='DescriptionRow']")
+                # Номер телефона и почта
+                realtor_contacts = WebDriverWait(adspower_browser, 10).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//*[@data-name='RealtorContacts']")
+                    )
                 )
-            )
-            for row in description_rows:
-                title = row.find_element(
-                    By.CLASS_NAME, "_3ea6fa5da8--about-title--OCzbj"
+                show_phone_button = WebDriverWait(realtor_contacts, 10).until(
+                    EC.presence_of_element_located(
+                        (By.CLASS_NAME, "_3ea6fa5da8--color_primary_100--AuVro")
+                    )
                 )
-                if title.text == "Регион работы":
-                    region = row.find_element(
-                        By.CLASS_NAME, "_3ea6fa5da8--about-text--xx5UG"
-                    ).text
-
-            # Номер телефона и почта
-            realtor_contacts = WebDriverWait(adspower_browser, 5).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//*[@data-name='RealtorContacts']")
+                print(show_phone_button.text)
+                ActionChains(adspower_browser).click(show_phone_button).perform()
+                time.sleep(random.randint(1, 2))
+                phone_number = (
+                    WebDriverWait(realtor_contacts, 10)
+                    .until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//*[@data-name='RealtorContactsLink']")
+                        )
+                    )
+                    .text
                 )
-            )
-            show_phone_button = realtor_contacts.find_element(
-                By.CLASS_NAME, "_3ea6fa5da8--color_primary_100--AuVro"
-            )
-            show_phone_button.click()
-            phone_number = realtor_contacts.find_element(
-                By.XPATH, "//*[@data-name='RealtorContactsLink']"
-            ).text
+                social_items = WebDriverWait(realtor_contacts, 10).until(
+                    EC.presence_of_all_elements_located(
+                        (By.XPATH, "//*[@data-name='SocialItem']")
+                    )
+                )
 
-            social_items = realtor_contacts.find_elements(
-                By.XPATH, "//*[@data-name='SocialItem']"
-            )
+                for item in social_items:
+                    if item.text.__contains__("@"):
+                        email = item.text
 
-            for item in social_items:
-                if item.text.__contains__("@"):
-                    email = item.text
+                yield {
+                    "id": str(id),
+                    "name": name,
+                    "region": region,
+                    "phone_number": phone_number,
+                    "email": email,
+                }
 
-            yield {
-                "id": str(id),
-                "name": name,
-                "region": region,
-                "phone_number": phone_number,
-                "email": email,
-            }
-
-            self.adspower_driver.delete_cache_adspower()
-            self.current_id_idx += 1
-            time.sleep(self.delay if self.delay else random.randint(3, 7))
+                self.adspower_driver.delete_cache_adspower()
+                self.current_id_idx += 1
+                time.sleep(self.delay if self.delay else random.randint(3, 5))
+            except Exception:
+                logger.error(f"Ошибка при сборе данных - {traceback.format_exc()}")
+                print(id)
 
         self.rotate_proxy()
 

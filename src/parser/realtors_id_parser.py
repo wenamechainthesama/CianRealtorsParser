@@ -17,6 +17,7 @@ class RealtorsIdParser:
         self.proxies = proxies
         self.current_proxy = None
         self.current_proxies_str: list[str] = None
+        self.useragent = UserAgent()
 
         self.batch_size = batch_size
         self.request_count = 0
@@ -54,16 +55,20 @@ class RealtorsIdParser:
         # TODO: добавить обработчик ошибок на requests
         # TODO: добавить логирование
         # TODO: как нам обрабатывать ids, которые уже собрали, чтобы в случае ошибки не начинать парсинг заново?
-        # TODO: разобраться с прокси, добавить ротацию прокси, добавить слип долгий
         realtors_found_local = 0
         while realtors_found_local < self.batch_size:
             try:
-                # TODO: добавить headers
                 request = requests.get(
                     f"https://api.cian.ru/agent-catalog-search/v1/get-realtors/?dealType=rent&offerType%5B0%5D=flat&regionId={self.regions_ids[self.current_region_idx]}&page={self.current_page_idx}",
                     proxies=(
                         {"http": self.get_random_proxy(), "https": self.get_random_proxy()}
                     ),
+                    headers={
+                        'user-agent': self.useragent.random,
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    }
                 )
                 if request.status_code in range(200, 400):
                     new_realtors = list(
@@ -88,7 +93,7 @@ class RealtorsIdParser:
                         realtors_found_local += len(new_realtors)
                         self.realtors_found_global += len(new_realtors)
                         self.current_page_idx += 1
-                        time.sleep(self.delay if self.delay else random.randint(2, 4))
+                        time.sleep(self.delay if self.delay else random.randint(2, 3))
                 else:
                     logger.error(
                         f"Не загружается страница циана. Код статуса: {request.status_code}"

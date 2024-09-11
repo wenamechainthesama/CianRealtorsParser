@@ -38,21 +38,23 @@ class QueryHandler:
             logger.success(
                 f"Ещё {QueryHandler.batch_size} ids риелторов добавлены в базу данных"
             )
-            # TODO: тоже добавить обработчик ошибок, так как если у тебя ошибка то код свалится
 
     @staticmethod
     def process_realtors_data():
-        realtors_ids = list(SQLInterface.get_realtors_ids(session=session))
-
         realtors_data_parser = RealtorsDataParser(
-            realtor_ids=realtors_ids,
             proxies=QueryHandler.proxies,
             batch_size=QueryHandler.batch_size,
         )
 
-        realtors_data_batch = True
-        while realtors_data_batch:
-            realtors_data_batch = list(realtors_data_parser.get_realtors_data())
+        while True:
+            realtors_ids_batch = list(SQLInterface.get_realtors_ids(session=session))
+            if not realtors_ids_batch:
+                break
+            realtors_data_batch = list(
+                realtors_data_parser.get_realtors_data(
+                    realtors_ids_batch=realtors_ids_batch
+                )
+            )
             logger.success(f"Получены данные ещё о {QueryHandler.batch_size} риелторах")
             print(len(realtors_data_batch))
             SQLInterface.write_realtors_data(

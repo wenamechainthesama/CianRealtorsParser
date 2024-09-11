@@ -16,7 +16,14 @@ class SQLInterface:
 
     @staticmethod
     def get_realtors_ids(session: Session, batch_size=10):
-        result = [i[0] for i in session.query(RealtorId.id)]
+        result = [
+            i[0]
+            for i in session.query(RealtorId.id)
+            .filter(RealtorId.already_used == 0)
+            .limit(batch_size)
+            .all()
+        ]
+        print("Realtors with non-used ids", result)
         return result
 
     @staticmethod
@@ -29,5 +36,8 @@ class SQLInterface:
                 realtor_id=int(data["id"]),
             )
             session.add(new_data)
+            session.query(RealtorId).filter(RealtorId.id == int(data["id"])).update(
+                {"already_used": True}
+            )
 
         session.commit()
