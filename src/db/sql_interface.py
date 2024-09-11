@@ -14,6 +14,11 @@ class SQLInterface:
 
         session.commit()
 
+        ids_count = session.query(RealtorId).count()
+        logger.success(
+            f"Ещё {len(realtors_ids)} ids риелторов добавлены в базу данных. Всего ids в бд: {ids_count}"
+        )
+
     @staticmethod
     def get_realtors_ids(session: Session, batch_size=10):
         result = [
@@ -23,7 +28,7 @@ class SQLInterface:
             .limit(batch_size)
             .all()
         ]
-        print("Realtors with non-used ids", result)
+        logger.info(f"Из бд взяты {len(result)} риелторов")
         return result
 
     @staticmethod
@@ -41,3 +46,8 @@ class SQLInterface:
             )
 
         session.commit()
+
+        data_count = session.query(RealtorId).count()
+        logger.success(
+            f"Сохранены данные ещё о {len(realtors_data)} риелторах. Всего данных в бд: {data_count}"
+        )

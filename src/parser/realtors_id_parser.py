@@ -13,14 +13,12 @@ class RealtorsIdParser:
     """Класс для парсинга id риелторов с сайта циан"""
 
     def __init__(self, proxies: list[dict[str, str]] | None, batch_size: int = 10):
-        self.ua = UserAgent()
         self.proxies = proxies
         self.current_proxy = None
         self.current_proxies_str: list[str] = None
         self.useragent = UserAgent()
 
         self.batch_size = batch_size
-        self.request_count = 0
         self.forbidden_regions_idxs = [181462, 184723]
         self.regions_ids = None
         self.realtors_found_global = 0
@@ -44,17 +42,15 @@ class RealtorsIdParser:
             if int(i) not in self.forbidden_regions_idxs
         ]
         self.current_region_idx = 0
+        logger.info("Все регионы РФ, кроме Крыма и Севастополя, получены")
 
     def translate_proxies_into_strings(self):
         for proxy in self.proxies:
             current_proxy = f"{proxy["PORT"].lower()}://{proxy["USERNAME"]}:{proxy["PASSWORD"]}@{proxy["HOST"]}"
-            print(current_proxy)
             self.current_proxies_str.append(current_proxy)
+        logger.info("Все прокси преобразованы в строки")
 
     def parse_realtors_ids(self) -> Iterator[int] | None:
-        # TODO: добавить обработчик ошибок на requests
-        # TODO: добавить логирование
-        # TODO: как нам обрабатывать ids, которые уже собрали, чтобы в случае ошибки не начинать парсинг заново?
         realtors_found_local = 0
         while realtors_found_local < self.batch_size:
             try:
@@ -93,6 +89,7 @@ class RealtorsIdParser:
                         realtors_found_local += len(new_realtors)
                         self.realtors_found_global += len(new_realtors)
                         self.current_page_idx += 1
+                        logger.success(f"Получены новые {self.batch_size} ids. Получено всего ids: {self.realtors_found_global}")
                         time.sleep(self.delay if self.delay else random.randint(2, 3))
                 else:
                     logger.error(
@@ -100,7 +97,8 @@ class RealtorsIdParser:
                     )
 
             except Exception:
-                logger.error(f"Ошибка при сборе ids - {traceback.format_exc()}")
+                logger.error(f"Ошибка при сборе ids:\n{traceback.format_exc()}")
+                
 
     def get_random_proxy(self) -> dict[str, str]:
         """Возвращает случайный прокси из списка"""

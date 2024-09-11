@@ -83,4 +83,3 @@ class AdspowerDriver:
         headers = {"Content-Type": "application/json"}
         time.sleep(5)
         requests.post(url, headers=headers, json=payload)
-        print(f"Статус изменения прокси -> {requests.status_code}")

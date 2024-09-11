@@ -1,13 +1,8 @@
-import sys
 import time
 import random
 import traceback
 
-import requests
 from loguru import logger
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -23,19 +18,16 @@ class RealtorsDataParser:
     def __init__(self, proxies: list[str], batch_size: int = 10):
 
         self.proxies = proxies
-        self.request_count = 0
         self.batch_size = batch_size
         self.adspower_driver: AdspowerDriver = AdspowerDriver()
         self.base_endpoint = "https://www.cian.ru/agents/"
         self.current_proxy = self.get_random_proxy()
-        self.current_id_idx = 0
         self.delay = None
 
     def get_realtors_data(self, realtors_ids_batch: list[int]):
         adspower_browser = self.adspower_driver.get_browser()
-        for id in realtors_ids_batch[
-            self.current_id_idx : self.current_id_idx + self.batch_size
-        ]:
+        data_parsed_counter = 0
+        for id in realtors_ids_batch:
             try:
                 realtor_link = self.base_endpoint + str(id)
                 adspower_browser.get(realtor_link)
@@ -78,7 +70,6 @@ class RealtorsDataParser:
                         (By.CLASS_NAME, "_3ea6fa5da8--color_primary_100--AuVro")
                     )
                 )
-                print(show_phone_button.text)
                 ActionChains(adspower_browser).click(show_phone_button).perform()
                 time.sleep(random.randint(1, 2))
                 phone_number = (
@@ -108,13 +99,15 @@ class RealtorsDataParser:
                     "email": email,
                 }
 
+                data_parsed_counter += 1
                 self.adspower_driver.delete_cache_adspower()
-                self.current_id_idx += 1
-                time.sleep(self.delay if self.delay else random.randint(3, 5))
+                time.sleep(self.delay if self.delay else random.randint(3, 4))
             except Exception:
-                logger.error(f"Ошибка при сборе данных - {traceback.format_exc()}")
-                print(id)
+                logger.error(
+                    f"При сборе данных риелтора (id={id}):\n{traceback.format_exc()}"
+                )
 
+        logger.success(f"Получены данные ещё о {data_parsed_counter} риелторах")
         self.rotate_proxy()
 
     def get_random_proxy(self) -> dict[str, str]:
@@ -138,9 +131,3 @@ class RealtorsDataParser:
             logger.info(
                 f"Изменено прокси при парсинге данных риелторов. Новое прокси: {self.current_proxy}"
             )
-
-
-# headers = {
-#     "User-Agent": "My User Agent 1.0",
-#     "From": "youremail@domain.example",  # This is another valid field
-# }
