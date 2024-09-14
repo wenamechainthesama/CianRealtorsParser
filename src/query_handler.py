@@ -1,5 +1,6 @@
 from loguru import logger
 
+from .db.models import AdspowerInstance
 from .db.sql_interface import SQLInterface
 from .parser.realtors_id_parser import RealtorsIdParser
 from .parser.realtors_data_parser import RealtorsDataParser
@@ -36,19 +37,29 @@ class QueryHandler:
             SQLInterface.write_realtors_ids(session=session, realtors_ids=realtors_ids)
 
     @staticmethod
-    def process_realtors_data():
+    def process_realtors_data(
+        adspower_id: str, adspower_name: str, adspower_instance: AdspowerInstance
+    ):
         realtors_data_parser = RealtorsDataParser(
             proxies=QueryHandler.proxies,
             batch_size=QueryHandler.batch_size,
         )
 
         while True:
-            realtors_ids_batch = list(SQLInterface.get_realtors_ids(session=session))
+            realtors_ids_batch = list(
+                SQLInterface.get_realtors_ids(
+                    session=session, adspower_instance=adspower_instance
+                )
+            )
+
             if not realtors_ids_batch:
                 break
+
             realtors_data_batch = list(
                 realtors_data_parser.get_realtors_data(
-                    realtors_ids_batch=realtors_ids_batch
+                    realtors_ids_batch=realtors_ids_batch,
+                    adspower_id=adspower_id,
+                    adspower_name=adspower_name,
                 )
             )
 

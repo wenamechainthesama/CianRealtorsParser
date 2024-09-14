@@ -1,8 +1,14 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
+import enum
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 Base = declarative_base()
+
+
+class AdspowerInstance(enum.Enum):
+    first = 1
+    second = 2
 
 
 class RealtorId(Base):
@@ -10,6 +16,8 @@ class RealtorId(Base):
 
     id = Column(Integer, primary_key=True, unique=True)
     already_used = Column(Boolean, default=False)
+    adspower_instance = Column(Enum(AdspowerInstance))
+    is_errored = Column(Boolean, default=False)
     data = relationship("RealtorData", uselist=False)
 
 

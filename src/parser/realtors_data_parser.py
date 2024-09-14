@@ -8,7 +8,8 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver import ActionChains
 
-
+from ..db import session
+from ..db.sql_interface import SQLInterface
 from src.utils.adspower_driver import AdspowerDriver
 
 
@@ -17,6 +18,7 @@ class RealtorsDataParser:
 
     def __init__(self, proxies: list[str], batch_size: int = 10):
 
+        # self.is_first_instance = False
         self.proxies = proxies
         self.batch_size = batch_size
         self.adspower_driver: AdspowerDriver = AdspowerDriver()
@@ -24,9 +26,12 @@ class RealtorsDataParser:
         self.current_proxy = self.get_random_proxy()
         self.delay = None
 
-    def get_realtors_data(self, realtors_ids_batch: list[int]):
-        adspower_browser = self.adspower_driver.get_browser()
+    def get_realtors_data(
+        self, realtors_ids_batch: list[int], adspower_id: str, adspower_name: str
+    ):
+        adspower_browser = self.adspower_driver.get_browser(adspower_id=adspower_id)
         data_parsed_counter = 0
+        error_ids = []
         for id in realtors_ids_batch:
             try:
                 realtor_link = self.base_endpoint + str(id)
@@ -86,7 +91,6 @@ class RealtorsDataParser:
                         (By.XPATH, "//*[@data-name='SocialItem']")
                     )
                 )
-
                 for item in social_items:
                     if item.text.__contains__("@"):
                         email = item.text
@@ -100,21 +104,23 @@ class RealtorsDataParser:
                 }
 
                 data_parsed_counter += 1
-                self.adspower_driver.delete_cache_adspower()
+                self.adspower_driver.delete_cache_adspower(adspower_id=adspower_id)
                 time.sleep(self.delay if self.delay else random.randint(3, 4))
             except Exception:
                 logger.error(
                     f"При сборе данных риелтора (id={id}):\n{traceback.format_exc()}"
                 )
+                error_ids.append(id)
 
         logger.success(f"Получены данные ещё о {data_parsed_counter} риелторах")
-        self.rotate_proxy()
+        self.rotate_proxy(adspower_id=adspower_id, adspower_name=adspower_name)
+        SQLInterface.mark_error_ids(session=session, error_ids=error_ids)
 
     def get_random_proxy(self) -> dict[str, str]:
         """Возвращает случайный прокси из списка"""
         return random.choice(self.proxies) if self.proxies else None
 
-    def rotate_proxy(self):
+    def rotate_proxy(self, adspower_id: str, adspower_name: str):
         """Меняет прокси после каждых n запросов"""
         self.current_proxy = self.get_random_proxy()
 
@@ -122,6 +128,8 @@ class RealtorsDataParser:
             proxy_type = "HTTP"
 
             self.adspower_driver.change_proxy(
+                adspower_id=adspower_id,
+                adspower_name=adspower_name,
                 proxy_type=proxy_type,
                 host=self.current_proxy["PROXY_HOST"],
                 port=self.current_proxy["PROXY_PORT"],

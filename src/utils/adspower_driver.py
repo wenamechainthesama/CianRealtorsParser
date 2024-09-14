@@ -6,20 +6,16 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from fake_useragent import UserAgent
-from config import ADSPOWER_ID, ADSPOWER_NAME
 
 
 class AdspowerDriver:
     """Класс для инициализации Adspower"""
 
-    adspower_id = ADSPOWER_ID
-    name = ADSPOWER_NAME
-
     @classmethod
-    def get_browser(cls):
+    def get_browser(cls, adspower_id):
         open_url = (
             "http://local.adspower.com:50325/api/v1/browser/start?user_id="
-            + cls.adspower_id
+            + adspower_id
         )
         resp = requests.get(open_url).json()
 
@@ -37,17 +33,24 @@ class AdspowerDriver:
         )
 
         driver = webdriver.Chrome(service=service, options=chrome_options)
+
+        current = driver.current_window_handle
+        for handle in driver.window_handles:
+            driver.switch_to.window(handle)
+            if handle != current:
+                driver.close()
+
         return driver
 
     @classmethod
-    def delete_cache_adspower(cls):
-        url = (
-            "http://localhost:50325/api/v1/user/delete-cache?user_id=" + cls.adspower_id
-        )
+    def delete_cache_adspower(cls, adspower_id):
+        url = "http://localhost:50325/api/v1/user/delete-cache?user_id=" + adspower_id
         requests.request("POST", url)
 
     @classmethod
-    def change_proxy(cls, proxy_type, host, port, user, password):
+    def change_proxy(
+        cls, adspower_id, adspower_name, proxy_type, host, port, user, password
+    ):
         ua = UserAgent()
         user_agent = ua.random
         url = "http://local.adspower.net:50325/api/v1/user/update"
@@ -60,8 +63,8 @@ class AdspowerDriver:
             "proxy_password": f"{password}",
         }
         payload = {
-            "user_id": f"{cls.adspower_id}",
-            "name": f"{cls.name}",
+            "user_id": f"{adspower_id}",
+            "name": f"{adspower_name}",
             "domain_name": "https://yandex.com",
             "repeat_config": ["0"],
             "open_urls": [
