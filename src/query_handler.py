@@ -14,7 +14,7 @@ class QueryHandler:
     и передавания данных в бд
     """
 
-    proxies = None  # proxy_list
+    proxies = proxy_list
     rotation_interval = 10
     batch_size = 10
 

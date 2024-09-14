@@ -15,7 +15,7 @@ class RealtorsIdParser:
     def __init__(self, proxies: list[dict[str, str]] | None, batch_size: int = 10):
         self.proxies = proxies
         self.current_proxy = None
-        self.current_proxies_str: list[str] = None
+        self.current_proxies_str: list[str] = []
         self.useragent = UserAgent()
 
         self.batch_size = batch_size
@@ -46,7 +46,7 @@ class RealtorsIdParser:
 
     def translate_proxies_into_strings(self):
         for proxy in self.proxies:
-            current_proxy = f"{proxy["PORT"].lower()}://{proxy["USERNAME"]}:{proxy["PASSWORD"]}@{proxy["HOST"]}"
+            current_proxy = f"http://{proxy['PROXY_LOGIN']}:{proxy['PROXY_PSW']}@{proxy['PROXY_HOST']}:{proxy['PROXY_PORT']}"
             self.current_proxies_str.append(current_proxy)
         logger.info(f"Все прокси преобразованы в строки. Список прокси: {self.current_proxies_str}")
 
@@ -54,10 +54,12 @@ class RealtorsIdParser:
         realtors_found_local = 0
         while realtors_found_local < self.batch_size:
             try:
+                proxy = self.get_random_proxy()
                 request = requests.get(
                     f"https://api.cian.ru/agent-catalog-search/v1/get-realtors/?dealType=rent&offerType%5B0%5D=flat&regionId={self.regions_ids[self.current_region_idx]}&page={self.current_page_idx}",
                     proxies=(
-                        {"http": self.get_random_proxy(), "https": self.get_random_proxy()}
+                        {"http": proxy,
+                         "https": proxy}
                     ),
                     headers={
                         'user-agent': self.useragent.random,
