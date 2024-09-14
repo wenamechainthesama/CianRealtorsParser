@@ -1,8 +1,6 @@
-import sys
 import time
 import requests
 from selenium import webdriver
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from fake_useragent import UserAgent
@@ -14,7 +12,7 @@ class AdspowerDriver:
     @classmethod
     def get_browser(cls, adspower_id):
         open_url = (
-            "http://local.adspower.com:50325/api/v1/browser/start?user_id="
+            "http://local.adspower.net:50325/api/v1/browser/start?user_id="
             + adspower_id
         )
         resp = requests.get(open_url).json()

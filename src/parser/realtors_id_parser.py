@@ -48,7 +48,7 @@ class RealtorsIdParser:
         for proxy in self.proxies:
             current_proxy = f"{proxy["PORT"].lower()}://{proxy["USERNAME"]}:{proxy["PASSWORD"]}@{proxy["HOST"]}"
             self.current_proxies_str.append(current_proxy)
-        logger.info("Все прокси преобразованы в строки")
+        logger.info(f"Все прокси преобразованы в строки. Список прокси: {self.current_proxies_str}")
 
     def parse_realtors_ids(self) -> Iterator[int] | None:
         realtors_found_local = 0
