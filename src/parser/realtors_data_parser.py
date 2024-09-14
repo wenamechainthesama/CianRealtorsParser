@@ -1,8 +1,9 @@
-import re
 import time
 import random
 import traceback
 
+from pywinauto import Application
+import pygetwindow as gw
 from loguru import logger
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -11,23 +12,32 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver import ActionChains
 
+from .proxy_status import ProxyStatus
 from ..db import session
 from ..db.sql_interface import SQLInterface
 from src.utils.adspower_driver import AdspowerDriver
 
-MAX_ATTEMPTS = 4
 
 class RealtorsDataParser:
     """Класс для парсинга основных данных (имени, города, телефона, почты) риелторов с сайта циан"""
 
-    def __init__(self, proxies: list[str], batch_size: int = 10):
+    realtors_parsed: int = 0
+    current_proxies: dict[str, ProxyStatus] = {}
 
-        # self.is_first_instance = False
-        self.proxies = proxies
-        self.batch_size = batch_size
+    def __init__(
+        self,
+        proxies: list[list[dict[str, str], ProxyStatus]],
+        proxy_rotation_delay_per_adspower_instance: int,
+    ):
+        RealtorsDataParser.current_proxies = proxies
+        self.proxy_rotation_delay_per_adspower_instance = (
+            proxy_rotation_delay_per_adspower_instance
+        )
         self.adspower_driver: AdspowerDriver = AdspowerDriver()
         self.base_endpoint = "https://www.cian.ru/agents/"
         self.current_proxy = self.get_random_proxy()
+        self.phone_max_attempts = 4
+        self.request_counter = 0
         self.delay = None
 
     def get_realtors_data(
@@ -40,6 +50,7 @@ class RealtorsDataParser:
             try:
                 realtor_link = self.base_endpoint + str(id)
                 adspower_browser.get(realtor_link)
+                self.request_counter += 1
                 time.sleep(random.randint(1, 2))
 
                 # Парсинг данных
@@ -53,6 +64,23 @@ class RealtorsDataParser:
                     )
                     .text
                 )
+
+                # if (
+                #     self.request_counter
+                #     - 1 % self.proxy_rotation_delay_per_adspower_instance
+                #     == 0
+                # ):
+                #     # Фокусировка на окне
+                #     window_list = gw.getWindowsWithTitle(
+                #         f"{name} - риэлтор, контакты, объекты риэлтора"
+                #     )
+                #     if window_list:
+                #         browser_window = window_list[0]
+                #         browser_window.activate()
+                #         app = Application().connect(handle=browser_window._hWnd)
+                #         app_dialog = app.top_window()
+                #         app_dialog.set_focus()
+                #         app_dialog.always_on_top()
 
                 # Регион работы
                 description_rows = WebDriverWait(adspower_browser, 5).until(
@@ -76,22 +104,19 @@ class RealtorsDataParser:
                     )
                 )
 
-                adspower_browser.execute_script("window.scrollBy(0, 300);")
-
-                time.sleep(random.randint(1, 2))
-
-                for i in range(MAX_ATTEMPTS):
-                    if i > 0:
-                        time.sleep(random.randint(1, 2))
+                for i in range(self.phone_max_attempts):
+                    time.sleep(1)
                     logger.info(f"Ищу телефон. Попытка № {i + 1}")
-                    phone_number = self.find_phone(realtor_contacts=realtor_contacts,
-                                    adspower_browser=adspower_browser)
+                    phone_number = self.find_phone(
+                        realtor_contacts=realtor_contacts,
+                        adspower_browser=adspower_browser,
+                    )
                     if phone_number:
-                        logger.success(f"Телефон найден - {phone_number}")
+                        logger.info(f"Телефон найден - {phone_number}")
                         break
 
                 if phone_number is None:
-                    logger.warning(f"Телефон не найден id - {id}")
+                    logger.warning(f"Телефон не найден (id={id})")
                     raise Exception
 
                 social_items = WebDriverWait(realtor_contacts, 3).until(
@@ -112,71 +137,68 @@ class RealtorsDataParser:
                 }
 
                 data_parsed_counter += 1
+                RealtorsDataParser.realtors_parsed += 1
                 self.adspower_driver.delete_cache_adspower(adspower_id=adspower_id)
+
+                if (
+                    self.request_counter
+                    % self.proxy_rotation_delay_per_adspower_instance
+                    == 0
+                ):
+                    self.rotate_proxy(
+                        adspower_id=adspower_id, adspower_name=adspower_name
+                    )
+                    time.sleep(random.randint(2, 3))
+                    # adspower_browser = self.adspower_driver.get_browser(
+                    #     adspower_id=adspower_id
+                    # )
 
                 time.sleep(self.delay if self.delay else random.randint(3, 4))
 
-                logger.info(f"Данные по id - {id} успешно собраны")
+                logger.success(
+                    f"Данные по id - {id} успешно собраны (adspower_instance={adspower_name[-1]}). Всего этим adspower instance собрано {RealtorsDataParser.realtors_parsed} ids из 31948"
+                )
             except Exception:
                 logger.error(
                     f"При сборе данных риелтора (id={id}):\n{traceback.format_exc()}"
                 )
+                self.rotate_proxy(adspower_id=adspower_id, adspower_name=adspower_name)
                 error_ids.append(id)
 
-        logger.success(f"Получены данные ещё о {data_parsed_counter} риелторах")
-        self.rotate_proxy(adspower_id=adspower_id, adspower_name=adspower_name)
+        logger.info(f"Получены данные ещё о {data_parsed_counter} риелторах")
         SQLInterface.mark_error_ids(session=session, error_ids=error_ids)
 
-    def find_phone(self, realtor_contacts: WebElement,
-                   adspower_browser: webdriver.Chrome) -> str | None:
-
+    def find_phone(
+        self, realtor_contacts: WebElement, adspower_browser: webdriver.Chrome
+    ) -> str:
         show_phone_button = WebDriverWait(realtor_contacts, 2).until(
             EC.presence_of_element_located(
                 (By.CLASS_NAME, "_3ea6fa5da8--color_primary_100--AuVro")
             )
         )
-
-        for _ in range(2):
-            time.sleep(random.randint(1, 2))
-            try:
-                ActionChains(adspower_browser).click(show_phone_button).perform()
-            except Exception:
-                pass
-
-        adspower_browser.execute_script("window.scrollBy(0, 100);")
-
-        try:
-            phone_number = (
-                WebDriverWait(realtor_contacts, 1)
-                .until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//*[@data-name='RealtorContactsLink']")
-                    )
-                )
-                .text
+        ActionChains(adspower_browser).click(show_phone_button).perform()
+        phone_number = WebDriverWait(realtor_contacts, 1).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "//*[@data-name='RealtorContactsLink']")
             )
-            return phone_number
-        except Exception:
-            # Регулярное выражение для поиска номера телефона
-            phone_regex = r"\+7 \d{3} \d{3}-\d{2}-\d{2}"
-
-            # Извлечение всей HTML-страницы
-            all_html = adspower_browser.page_source
-
-            # Поиск телефона в HTML с помощью регулярного выражения
-            phone_match = re.search(phone_regex, all_html)
-
-            if phone_match:
-                phone_number = phone_match.group(0)  # Если телефон найден, извлекаем его
-                return phone_number
-            else:
-                return None
-
-
+        )
+        return phone_number.text if phone_number else None
 
     def get_random_proxy(self) -> dict[str, str]:
         """Возвращает случайный прокси из списка"""
-        return random.choice(self.proxies) if self.proxies else None
+        if RealtorsDataParser.current_proxies is None:
+            return None
+        ready_proxies = [
+            item
+            for item in self.current_proxies
+            if item[1] not in [ProxyStatus.busy, ProxyStatus.banned]
+        ]
+        chosen_list = random.choice(ready_proxies)
+        chosen_proxy = chosen_list[0]
+        RealtorsDataParser.current_proxies[
+            RealtorsDataParser.current_proxies.index(chosen_list)
+        ][1] = ProxyStatus.busy
+        return chosen_proxy
 
     def rotate_proxy(self, adspower_id: str, adspower_name: str):
         """Меняет прокси после каждых n запросов"""

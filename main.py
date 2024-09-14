@@ -32,7 +32,7 @@ def fetch_realtor_data():
 
 
 def main():
-    fetch_ids()
+    # fetch_ids()
     fetch_realtor_data()
 
 

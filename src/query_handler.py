@@ -5,7 +5,7 @@ from .db.sql_interface import SQLInterface
 from .parser.realtors_id_parser import RealtorsIdParser
 from .parser.realtors_data_parser import RealtorsDataParser
 from .db import session
-from config import proxy_list
+from config import PROXIES
 
 
 class QueryHandler:
@@ -14,9 +14,9 @@ class QueryHandler:
     и передавания данных в бд
     """
 
-    proxies = proxy_list
-    rotation_interval = 10
+    proxies = PROXIES
     batch_size = 10
+    proxy_rotation_delay_per_adspower_instance = 10
 
     @staticmethod
     def process_realtors_id():
@@ -27,9 +27,8 @@ class QueryHandler:
         )
 
         # Получение и запись в базу данных ids риелторов частями
-        # realtors_ids = True
-        # while realtors_ids:
-        for _ in range(10):
+        realtors_ids = True
+        while realtors_ids:
             # Получение
             realtors_ids = list(realtors_id_parser.parse_realtors_ids())
 
@@ -42,15 +41,39 @@ class QueryHandler:
     ):
         realtors_data_parser = RealtorsDataParser(
             proxies=QueryHandler.proxies,
-            batch_size=QueryHandler.batch_size,
+            proxy_rotation_delay_per_adspower_instance=QueryHandler.proxy_rotation_delay_per_adspower_instance,
         )
 
         while True:
-            realtors_ids_batch = list(
-                SQLInterface.get_realtors_ids(
-                    session=session, adspower_instance=adspower_instance
-                )
-            )
+            # realtors_ids_batch = list(
+            #     SQLInterface.get_realtors_ids(
+            #         session=session, adspower_instance=adspower_instance
+            #     )
+            # )
+            realtors_ids_batch = [
+                182,
+                186,
+                190,
+                195,
+                215,
+                222,
+                230,
+                240,
+                247,
+                254,
+                261,
+                266,
+                273,
+                281,
+                283,
+                294,
+                334,
+                350,
+                381,
+                397,
+                403,
+                434,
+            ]
 
             if not realtors_ids_batch:
                 break

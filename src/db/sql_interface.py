@@ -1,4 +1,3 @@
-import asyncio
 from loguru import logger
 
 from .models import RealtorId, RealtorData, AdspowerInstance
@@ -14,8 +13,16 @@ class SQLInterface:
         for idx, realtor_id in enumerate(realtors_ids):
             if idx >= num_realtors_ids / 2:
                 adspower_instance = AdspowerInstance.second
-            new_realtor = RealtorId(id=realtor_id, adspower_instance=adspower_instance)
-            session.add(new_realtor)
+            id_already_in_db = session.query(
+                session.query(RealtorId).filter_by(id=realtor_id).exists()
+            ).scalar()
+            if not id_already_in_db:
+                new_realtor = RealtorId(
+                    id=realtor_id, adspower_instance=adspower_instance
+                )
+                session.add(new_realtor)
+            else:
+                logger.warning(f"Этот id ({realtor_id}) уже есть в бд")
 
         session.commit()
 
