@@ -30,4 +30,4 @@ class RealtorData(Base):
     name = Column(String(50))
     phone_number = Column(String(20))
     email = Column(String(100))
-    region = Column(String(100))
+    region = Column(String(200))
