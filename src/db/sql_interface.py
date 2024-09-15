@@ -42,12 +42,11 @@ class SQLInterface:
                 RealtorId.already_used == 0,
                 RealtorId.adspower_instance == adspower_instance,
                 RealtorId.is_errored != True,
+                RealtorId.id <= 10624163,
             )
             .limit(batch_size)
             .all()
         ]
-        if len(result) > 0 and result[-1] > 6934708:
-            return []
         logger.info(f"Из бд взяты {len(result)} риелторов")
         return result
 
@@ -58,6 +57,7 @@ class SQLInterface:
                 name=data["name"],
                 email=data["email"],
                 phone_number=data["phone_number"],
+                region=data["region"],
                 realtor_id=int(data["id"]),
             )
             session.add(new_data)

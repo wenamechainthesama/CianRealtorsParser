@@ -140,18 +140,18 @@ class RealtorsDataParser:
                 RealtorsDataParser.realtors_parsed += 1
                 self.adspower_driver.delete_cache_adspower(adspower_id=adspower_id)
 
-                if (
-                    self.request_counter
-                    % self.proxy_rotation_delay_per_adspower_instance
-                    == 0
-                ):
-                    self.rotate_proxy(
-                        adspower_id=adspower_id, adspower_name=adspower_name
-                    )
-                    time.sleep(random.randint(2, 3))
-                    # adspower_browser = self.adspower_driver.get_browser(
-                    #     adspower_id=adspower_id
-                    # )
+                # if (
+                #     self.request_counter
+                #     % self.proxy_rotation_delay_per_adspower_instance
+                #     == 0
+                # ):
+                #     self.rotate_proxy(
+                #         adspower_id=adspower_id, adspower_name=adspower_name
+                #     )
+                #     time.sleep(random.randint(2, 3))
+                # adspower_browser = self.adspower_driver.get_browser(
+                #     adspower_id=adspower_id
+                # )
 
                 time.sleep(self.delay if self.delay else random.randint(3, 4))
 
@@ -166,7 +166,7 @@ class RealtorsDataParser:
                 logger.error(
                     f"При сборе данных риелтора (id={id}):\n{traceback.format_exc()}"
                 )
-                self.rotate_proxy(adspower_id=adspower_id, adspower_name=adspower_name)
+                # self.rotate_proxy(adspower_id=adspower_id, adspower_name=adspower_name)
                 error_ids.append(id)
 
         logger.info(f"Получены данные ещё о {data_parsed_counter} риелторах")
