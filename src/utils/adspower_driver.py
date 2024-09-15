@@ -50,7 +50,7 @@ class AdspowerDriver:
         cls, adspower_id, adspower_name, proxy_type, host, port, user, password
     ):
         ua = UserAgent()
-        user_agent = ua.random
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0"
         url = "http://local.adspower.net:50325/api/v1/user/update"
         proxy = {
             "proxy_soft": "other",

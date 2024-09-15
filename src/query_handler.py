@@ -16,7 +16,7 @@ class QueryHandler:
 
     proxies = PROXIES
     batch_size = 10
-    proxy_rotation_delay_per_adspower_instance = 10
+    proxy_rotation_delay_per_adspower_instance = 30
 
     @staticmethod
     def process_realtors_id():
@@ -45,35 +45,11 @@ class QueryHandler:
         )
 
         while True:
-            # realtors_ids_batch = list(
-            #     SQLInterface.get_realtors_ids(
-            #         session=session, adspower_instance=adspower_instance
-            #     )
-            # )
-            realtors_ids_batch = [
-                182,
-                186,
-                190,
-                195,
-                215,
-                222,
-                230,
-                240,
-                247,
-                254,
-                261,
-                266,
-                273,
-                281,
-                283,
-                294,
-                334,
-                350,
-                381,
-                397,
-                403,
-                434,
-            ]
+            realtors_ids_batch = list(
+                SQLInterface.get_realtors_ids(
+                    session=session, adspower_instance=adspower_instance
+                )
+            )
 
             if not realtors_ids_batch:
                 break

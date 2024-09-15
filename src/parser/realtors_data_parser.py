@@ -98,7 +98,7 @@ class RealtorsDataParser:
                         ).text
 
                 # Номер телефона и почта
-                realtor_contacts = WebDriverWait(adspower_browser, 3).until(
+                realtor_contacts = WebDriverWait(adspower_browser, 5).until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//*[@data-name='RealtorContacts']")
                     )
@@ -119,7 +119,7 @@ class RealtorsDataParser:
                     logger.warning(f"Телефон не найден (id={id})")
                     raise Exception
 
-                social_items = WebDriverWait(realtor_contacts, 3).until(
+                social_items = WebDriverWait(realtor_contacts, 5).until(
                     EC.presence_of_all_elements_located(
                         (By.XPATH, "//*[@data-name='SocialItem']")
                     )
@@ -158,6 +158,10 @@ class RealtorsDataParser:
                 logger.success(
                     f"Данные по id - {id} успешно собраны (adspower_instance={adspower_name[-1]}). Всего этим adspower instance собрано {RealtorsDataParser.realtors_parsed} ids из 31948"
                 )
+                with open("data_checkpoint.txt", "w", encoding="utf-8") as file:
+                    file.write(
+                        f"id = {id} realtors_parsed = {RealtorsDataParser.realtors_parsed}"
+                    )
             except Exception:
                 logger.error(
                     f"При сборе данных риелтора (id={id}):\n{traceback.format_exc()}"

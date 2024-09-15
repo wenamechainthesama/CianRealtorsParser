@@ -46,6 +46,8 @@ class SQLInterface:
             .limit(batch_size)
             .all()
         ]
+        if len(result) > 0 and result[-1] > 6934708:
+            return []
         logger.info(f"Из бд взяты {len(result)} риелторов")
         return result
 
