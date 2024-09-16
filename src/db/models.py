@@ -18,6 +18,7 @@ class RealtorId(Base):
     already_used = Column(Boolean, default=False)
     adspower_instance = Column(Enum(AdspowerInstance))
     is_errored = Column(Boolean, default=False)
+    is_broken = Column(Boolean, default=False)
     data = relationship("RealtorData", uselist=False)
 
 

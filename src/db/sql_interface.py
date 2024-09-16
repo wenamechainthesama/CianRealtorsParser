@@ -41,7 +41,7 @@ class SQLInterface:
             .filter(
                 RealtorId.already_used == 0,
                 RealtorId.adspower_instance == adspower_instance,
-                RealtorId.is_errored != True,
+                # RealtorId.is_broken != True,
                 RealtorId.id <= 10624163,
             )
             .limit(batch_size)
@@ -77,6 +77,15 @@ class SQLInterface:
         for id in error_ids:
             session.query(RealtorId).filter(RealtorId.id == id).update(
                 {"is_errored": True}
+            )
+
+        session.commit()
+
+    @staticmethod
+    def mark_broken_ids(session: Session, broken_ids: list[int]):
+        for id in broken_ids:
+            session.query(RealtorId).filter(RealtorId.id == id).update(
+                {"is_broken": True}
             )
 
         session.commit()

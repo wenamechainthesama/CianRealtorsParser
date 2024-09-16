@@ -46,12 +46,22 @@ class RealtorsDataParser:
         adspower_browser = self.adspower_driver.get_browser(adspower_id=adspower_id)
         data_parsed_counter = 0
         error_ids = []
+        broken_ids = []
         for id in realtors_ids_batch:
             try:
                 realtor_link = self.base_endpoint + str(id)
                 adspower_browser.get(realtor_link)
                 self.request_counter += 1
                 time.sleep(random.randint(1, 2))
+
+                title = (
+                    WebDriverWait(adspower_browser, 5)
+                    .until(EC.presence_of_element_located((By.CLASS_NAME, "title")))
+                    .text
+                )
+                if title == "Страница не найдена":
+                    broken_ids.append(id)
+                    continue
 
                 # Парсинг данных
                 # Имя
@@ -119,14 +129,18 @@ class RealtorsDataParser:
                     logger.warning(f"Телефон не найден (id={id})")
                     raise Exception
 
-                social_items = WebDriverWait(realtor_contacts, 5).until(
-                    EC.presence_of_all_elements_located(
-                        (By.XPATH, "//*[@data-name='SocialItem']")
+                email = None
+                try:
+                    social_items = WebDriverWait(realtor_contacts, 5).until(
+                        EC.presence_of_all_elements_located(
+                            (By.XPATH, "//*[@data-name='SocialItem']")
+                        )
                     )
-                )
-                for item in social_items:
-                    if item.text.__contains__("@"):
-                        email = item.text
+                    for item in social_items:
+                        if item.text.__contains__("@"):
+                            email = item.text
+                except Exception:
+                    pass
 
                 yield {
                     "id": str(id),
@@ -171,6 +185,7 @@ class RealtorsDataParser:
 
         logger.info(f"Получены данные ещё о {data_parsed_counter} риелторах")
         SQLInterface.mark_error_ids(session=session, error_ids=error_ids)
+        SQLInterface.mark_broken_ids(session=session, broken_ids=broken_ids)
 
     def find_phone(
         self, realtor_contacts: WebElement, adspower_browser: webdriver.Chrome

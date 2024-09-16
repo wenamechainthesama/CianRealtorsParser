@@ -34,6 +34,10 @@ def fetch_realtor_data():
 def main():
     # fetch_ids()
     fetch_realtor_data()
+    with_phone = [1301554, 1833778, 1835014, 1854628]
+    without_phone = [
+        1781326,
+    ]
 
 
 if __name__ == "__main__":
