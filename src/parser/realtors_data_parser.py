@@ -54,14 +54,15 @@ class RealtorsDataParser:
                 self.request_counter += 1
                 time.sleep(random.randint(1, 2))
 
-                title = (
-                    WebDriverWait(adspower_browser, 5)
-                    .until(EC.presence_of_element_located((By.CLASS_NAME, "title")))
-                    .text
-                )
-                if title == "Страница не найдена":
-                    broken_ids.append(id)
-                    continue
+                try:
+                    title = WebDriverWait(adspower_browser, 5).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, "title"))
+                    )
+                    if title.text == "Страница не найдена":
+                        broken_ids.append(id)
+                        continue
+                except Exception:
+                    pass
 
                 # Парсинг данных
                 # Имя
@@ -108,26 +109,30 @@ class RealtorsDataParser:
                         ).text
 
                 # Номер телефона и почта
-                realtor_contacts = WebDriverWait(adspower_browser, 5).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//*[@data-name='RealtorContacts']")
+                phone_number = None
+                try:
+                    realtor_contacts = WebDriverWait(adspower_browser, 5).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//*[@data-name='RealtorContacts']")
+                        )
                     )
-                )
 
-                for i in range(self.phone_max_attempts):
-                    time.sleep(1)
-                    logger.info(f"Ищу телефон. Попытка № {i + 1}")
-                    phone_number = self.find_phone(
-                        realtor_contacts=realtor_contacts,
-                        adspower_browser=adspower_browser,
-                    )
-                    if phone_number:
-                        logger.info(f"Телефон найден - {phone_number}")
-                        break
+                    for i in range(self.phone_max_attempts):
+                        time.sleep(1)
+                        logger.info(f"Ищу телефон. Попытка № {i + 1}")
+                        phone_number = self.find_phone(
+                            realtor_contacts=realtor_contacts,
+                            adspower_browser=adspower_browser,
+                        )
+                        if phone_number:
+                            logger.info(f"Телефон найден - {phone_number}")
+                            break
 
-                if phone_number is None:
-                    logger.warning(f"Телефон не найден (id={id})")
-                    raise Exception
+                    if phone_number is None:
+                        logger.warning(f"Телефон не найден (id={id})")
+                        raise Exception
+                except Exception:
+                    pass
 
                 email = None
                 try:

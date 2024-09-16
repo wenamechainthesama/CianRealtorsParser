@@ -41,7 +41,7 @@ class SQLInterface:
             .filter(
                 RealtorId.already_used == 0,
                 RealtorId.adspower_instance == adspower_instance,
-                # RealtorId.is_broken != True,
+                RealtorId.is_broken == None,
                 RealtorId.id <= 10624163,
             )
             .limit(batch_size)
