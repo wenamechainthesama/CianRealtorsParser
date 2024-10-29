@@ -1,9 +1,11 @@
 from loguru import logger
 
+from .db.models import AdspowerInstance, RealtorId, RealtorData
 from .db.sql_interface import SQLInterface
 from .parser.realtors_id_parser import RealtorsIdParser
 from .parser.realtors_data_parser import RealtorsDataParser
 from .db import session
+from config import PROXIES
 
 
 class QueryHandler:
@@ -12,46 +14,66 @@ class QueryHandler:
     и передавания данных в бд
     """
 
-    proxies = None  # список прокси
-    rotation_interval = 10
+    proxies = PROXIES
     batch_size = 10
+    proxy_rotation_delay_per_adspower_instance = 30
 
     @staticmethod
     def process_realtors_id():
-        # Создание объекта класса по парсингу id риелторов
+        # Создание объекта класса по парсингу ids риелторов
         realtors_id_parser = RealtorsIdParser(
             proxies=QueryHandler.proxies,
-            rotation_interval=QueryHandler.rotation_interval,
+            batch_size=QueryHandler.batch_size,
         )
 
-        # Получение и запись в базу данных id риелторов частями
-        for _ in range(5):
+        # Получение и запись в базу данных ids риелторов частями
+        realtors_ids = True
+        while realtors_ids:
             # Получение
-            realtors_ids = list(
-                realtors_id_parser.get_realtors_ids(batch_size=QueryHandler.batch_size)
-            )
+            realtors_ids = list(realtors_id_parser.parse_realtors_ids())
 
             # Запись в бд
             SQLInterface.write_realtors_ids(session=session, realtors_ids=realtors_ids)
 
-            # TODO: тоже добавить обработчик ошибок, так как если у тебя ошибка то код свалится
-
     @staticmethod
-    def process_realtors_data():
-        # TODO: добавить запрос к базе для получения ids
-        # realtors_ids = [12284, 17657, 18867, 21934, 23097]
-        realtors_ids = list(SQLInterface.get_realtors_ids(session=session))
-        print(realtors_ids, len(realtors_ids))
-
+    def process_realtors_data(
+        adspower_id: str, adspower_name: str, adspower_instance: AdspowerInstance
+    ):
         realtors_data_parser = RealtorsDataParser(
-            realtor_ids=realtors_ids,
             proxies=QueryHandler.proxies,
-            rotation_interval=QueryHandler.rotation_interval,
+            proxy_rotation_delay_per_adspower_instance=QueryHandler.proxy_rotation_delay_per_adspower_instance,
         )
 
-        realtors_data_batch = realtors_data_parser.get_realtors_data()
+        while True:
+            realtors_ids_batch = list(
+                SQLInterface.get_realtors_ids(
+                    session=session, adspower_instance=adspower_instance
+                )
+            )
 
-        # print(realtors_data_batch)
+            if not realtors_ids_batch:
+                break
 
-        # TODO: добавить в базу полученные данные о риелторах
-        # ...
+            print(realtors_ids_batch)
+
+            realtors_data_batch = list(
+                realtors_data_parser.get_realtors_data(
+                    realtors_ids_batch=realtors_ids_batch,
+                    adspower_id=adspower_id,
+                    adspower_name=adspower_name,
+                )
+            )
+
+            print(realtors_data_batch)
+
+            # for data in realtors_data_batch:
+            #     session.query(RealtorData).filter(
+            #         RealtorData.realtor_id == data["id"]
+            #     ).update({"phone_number": data["phone_number"]})
+
+            # session.commit()
+            SQLInterface.write_realtors_data(
+                session=session, realtors_data=realtors_data_batch
+            )
+
+        logger.success("Все риелторы добавлены в базу данных")
