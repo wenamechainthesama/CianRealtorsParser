@@ -38,11 +38,20 @@ class SQLInterface:
         result = [
             i[0]
             for i in session.query(RealtorId.id)
+            # .join(RealtorData)
             .filter(
                 RealtorId.already_used == 0,
+                RealtorId.is_errored == 0,
                 RealtorId.adspower_instance == adspower_instance,
-                RealtorId.is_broken == None,
-                RealtorId.id <= 10624163,
+                # ~RealtorId.data.in_(
+                #     (
+                #         data
+                #         for data in session.query(RealtorData.realtor_id).filter(
+                #             RealtorData.phone_number == None
+                #         )
+                #     )
+                # ),
+                # RealtorData.phone_number == None,  # Условие на phone_number
             )
             .limit(batch_size)
             .all()

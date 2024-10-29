@@ -4,3 +4,4 @@ __pycache__/
 realtors_parser.log
 ids_checkpoint.txt
 data_checkpoint.txt
+realtors.db

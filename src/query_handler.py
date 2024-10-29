@@ -1,6 +1,6 @@
 from loguru import logger
 
-from .db.models import AdspowerInstance
+from .db.models import AdspowerInstance, RealtorId, RealtorData
 from .db.sql_interface import SQLInterface
 from .parser.realtors_id_parser import RealtorsIdParser
 from .parser.realtors_data_parser import RealtorsDataParser
@@ -54,6 +54,8 @@ class QueryHandler:
             if not realtors_ids_batch:
                 break
 
+            print(realtors_ids_batch)
+
             realtors_data_batch = list(
                 realtors_data_parser.get_realtors_data(
                     realtors_ids_batch=realtors_ids_batch,
@@ -62,6 +64,14 @@ class QueryHandler:
                 )
             )
 
+            print(realtors_data_batch)
+
+            # for data in realtors_data_batch:
+            #     session.query(RealtorData).filter(
+            #         RealtorData.realtor_id == data["id"]
+            #     ).update({"phone_number": data["phone_number"]})
+
+            # session.commit()
             SQLInterface.write_realtors_data(
                 session=session, realtors_data=realtors_data_batch
             )

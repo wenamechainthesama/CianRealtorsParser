@@ -17,27 +17,26 @@ def fetch_ids():
 
 def fetch_realtor_data():
     query_handler = QueryHandler()
-    task1 = multiprocessing.Process(
-        target=query_handler.process_realtors_data,
-        args=[ADSPOWER_ID1, ADSPOWER_NAME1, AdspowerInstance.first],
+    query_handler.process_realtors_data(
+        ADSPOWER_ID1, ADSPOWER_NAME1, AdspowerInstance.first
     )
-    task1.start()
-    task2 = multiprocessing.Process(
-        target=query_handler.process_realtors_data,
-        args=[ADSPOWER_ID2, ADSPOWER_NAME2, AdspowerInstance.second],
-    )
-    task2.start()
-    task1.join()
-    task2.join()
+    # task1 = multiprocessing.Process(
+    #     target=query_handler.process_realtors_data,
+    #     args=[ADSPOWER_ID1, ADSPOWER_NAME1, AdspowerInstance.first],
+    # )
+    # task1.start()
+    # task2 = multiprocessing.Process(
+    #     target=query_handler.process_realtors_data,
+    #     args=[ADSPOWER_ID2, ADSPOWER_NAME2, AdspowerInstance.second],
+    # )
+    # task2.start()
+    # task1.join()
+    # task2.join()
 
 
 def main():
     # fetch_ids()
     fetch_realtor_data()
-    with_phone = [1301554, 1833778, 1835014, 1854628]
-    without_phone = [
-        1781326,
-    ]
 
 
 if __name__ == "__main__":

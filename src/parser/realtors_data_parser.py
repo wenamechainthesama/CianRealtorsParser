@@ -2,8 +2,8 @@ import time
 import random
 import traceback
 
-from pywinauto import Application
-import pygetwindow as gw
+# from pywinauto import Application
+# import pygetwindow as gw
 from loguru import logger
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -59,6 +59,7 @@ class RealtorsDataParser:
                         EC.presence_of_element_located((By.CLASS_NAME, "title"))
                     )
                     if title.text == "Страница не найдена":
+                        error_ids.append(id)
                         broken_ids.append(id)
                         continue
                 except Exception:
@@ -172,7 +173,7 @@ class RealtorsDataParser:
                 #     adspower_id=adspower_id
                 # )
 
-                time.sleep(self.delay if self.delay else random.randint(3, 4))
+                time.sleep(self.delay if self.delay else random.randint(1, 3))
 
                 logger.success(
                     f"Данные по id - {id} успешно собраны (adspower_instance={adspower_name[-1]}). Всего этим adspower instance собрано {RealtorsDataParser.realtors_parsed} ids из 31948"
